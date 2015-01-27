@@ -3,7 +3,7 @@
  ** "THE BEER-WARE LICENSE" (Revision 42):
  ** <lyzrd17@gmail.com> wrote this file. As long as you retain this notice you
  ** can do whatever you want with this stuff. If we meet some day, and you think
- ** this stuff is worth it, you can buy me a beer in return. Jochen Goertler 
+ ** this stuff is worth it, you can buy me a beer in return. Jochen Goertler
  ** ----------------------------------------------------------------------------
  **/
 
@@ -36,7 +36,7 @@ function Interval(start, stop) {
 function isWorkday(date) {
     var dn = date.day();
     return dn < 6 && dn > 0;
-} 
+}
 
 // given a set amount of hours per month
 function getHours(amount) {
@@ -67,12 +67,12 @@ function getAllSlots(date) {
     var result = [];
     while (d.month() == m) {
         if (isWorkday(d)) {
-            var ms = moment(new Date(y, m, d.date(), 8 )); 
-            var me = moment(new Date(y, m, d.date(), 12)); 
-            var as = moment(new Date(y, m, d.date(), 13)); 
+            var ms = moment(new Date(y, m, d.date(), 8 ));
+            var me = moment(new Date(y, m, d.date(), 12));
+            var as = moment(new Date(y, m, d.date(), 13));
             var ae = moment(new Date(y, m, d.date(), 18));
             var morning = new Interval(ms,  me);
-            var afternoon = new Interval(as, ae); 
+            var afternoon = new Interval(as, ae);
             result.push(morning);
             result.push(afternoon);
         }
@@ -97,8 +97,8 @@ function createHours(date, amount) {
     for (i = 0; i < hs.length; i++) {
             result.push(assignToSlot(slots[i],hs[i]));
     }
-    // sort the intervals back into right order 
-    result.sort(function(x, y){ 
+    // sort the intervals back into right order
+    result.sort(function(x, y){
         return x.start - y.start;
     });
     return result;
@@ -106,7 +106,7 @@ function createHours(date, amount) {
 
 function createTable(date, amount) {
     var result = createHours(date, amount);
-     
+
     var table = $('<table></table>');
     table.append('<th>Von</th><th>Bis</th><th>Dauer</th>');
     for(i = 0; i < result.length; i++){
@@ -123,7 +123,7 @@ function createTable(date, amount) {
 
 // execute when document is ready
 $(document).ready(function() {
-    
+
     moment.locale('en', {
         months : ["Januar", "Feburuar", "M\u00e4rz", "April",
                   "Mai", "Juni", "Juli", "August",
@@ -147,7 +147,7 @@ $(document).ready(function() {
     $('#chooser').prepend(msel);
 
     $( "#chooser" ).submit(function( event ) {
-        var m = $( "#month" ).val(); 
+        var m = $( "#month" ).val();
         var y = $( "#year" ).val();
         var d = moment().set({'year':y, 'month':m, 'date':1});
         $('#header').text(m + ' ' + y);
@@ -155,4 +155,4 @@ $(document).ready(function() {
         $('#hours').append(createTable(d, 30));
         event.preventDefault();
     });
-}); 
+});
