@@ -26,10 +26,13 @@ function shuffle(array) {
     return array;
 }
 
-// creates an interval of dates
-function Interval(start, stop) {
+// creates a slot where one could work
+function Slot(date, start, stop) {
+    this.date = date;
     this.start = start;
     this.stop = stop;
+    this.empty = function () { return this.start == this.stop; }
+    this.duration = function () { return this.stop - this.start; }
 }
 
 // check if a date is a workday
@@ -38,16 +41,16 @@ function isWorkday(date) {
     return dn < 6 && dn > 0;
 }
 
-// given a set amount of hours per month
-function getHours(amount) {
+// split an amount of hours per month into chunks
+function getHours(amount, maxAtOnce) {
     var result = [];
     var tmp;
     while (amount > 0) {
-        if (amount <= 4) {
+        if (amount <= maxAtOnce) {
             result.push(amount);
             break;
         } else {
-            tmp = getRandomInt(1, 4);
+            tmp = getRandomInt(1, maxAtOnce);
             result.push(tmp);
             amount -= tmp;
         }
@@ -55,66 +58,70 @@ function getHours(amount) {
     return result;
 }
 
-function intervalToString(interval) {
-    return interval.start.format() + " - " + interval.stop.format();
-}
-
-// get all time slots, where one could go to work
+// get all time slots for a month
 function getAllSlots(date) {
-    var d = date.set({'date':1});
-    var m = date.get('month');
-    var y = date.get('year');
+    var tm = moment(date);
     var result = [];
-    while (d.month() == m) {
-        if (isWorkday(d)) {
-            var ms = moment(new Date(y, m, d.date(), 8 ));
-            var me = moment(new Date(y, m, d.date(), 12));
-            var as = moment(new Date(y, m, d.date(), 13));
-            var ae = moment(new Date(y, m, d.date(), 18));
-            var morning = new Interval(ms,  me);
-            var afternoon = new Interval(as, ae);
-            result.push(morning);
-            result.push(afternoon);
+    // while still in current month
+    while (date.month() == tm.month()) {
+        var pt = moment(tm);
+        if (isWorkday(pt)) {
+            // one can work from 9 to 18
+            result.push(new Slot(pt, 9, 18));
+        } else {
+            // on weekends the slot is empty
+            result.push(new Slot(pt, 0, 0));
         }
-        d.add(1, 'days');
+        tm.add(1, 'days');
     }
     return result;
 }
 
 // randomly assigns a number of hours to a time slot
-function assignToSlot(interval, hours) {
-    var lps = interval.stop.hour() - hours;
-    var rand_start = getRandomInt(interval.start.get('hour'), lps);
-    interval.start.set('hour', rand_start);
-    interval.stop.set('hour', rand_start + hours);
-    return interval;
+function assignToSlot(slot, hours) {
+    var lps = slot.stop - hours;
+    var rs = getRandomInt(slot.start, lps);
+    var ns = new Slot(slot.date, rs, rs + hours);
+    return ns;
 }
 
-function createHours(date, amount) {
-    var hs = getHours(amount);
+// randomly creates the amount hours and assigns them to days
+function assignHours(date, amount) {
+    var hs = getHours(amount, 5);
     var slots = shuffle(getAllSlots(date));
     var result = [];
-    for (i = 0; i < hs.length; i++) {
-            result.push(assignToSlot(slots[i],hs[i]));
+    var hcounter = 0;
+    for (i = 0; i < slots.length; i++) {
+        if (hcounter < hs.length && !slots[i].empty()) {
+            result.push(assignToSlot(slots[i],hs[hcounter]));
+            hcounter++;
+        } else {
+            // push empty slot
+            result.push(new Slot(slots[i].date, 0, 0));
+        }
     }
-    // sort the intervals back into right order
+    // sort the slots back into right order
     result.sort(function(x, y){
-        return x.start - y.start;
+        return x.date - y.date;
     });
     return result;
 }
 
+// creates the time sheet as html table
 function createTable(date, amount) {
-    var result = createHours(date, amount);
+    var result = assignHours(date, amount);
 
     var table = $('<table></table>');
-    table.append('<th>Von</th><th>Bis</th><th>Dauer</th>');
+    table.append('<th>Tag</th><th>Von - Bis</th><th>Dauer</th>');
     for(i = 0; i < result.length; i++){
-        var dur = result[i].stop.hour() - result[i].start.hour();
         var row = $('<tr>');
-        row.append('<td>'+result[i].start.format('ddd DD.MM. H:mm')+'</td>');
-        row.append('<td>'+result[i].stop.format('ddd DD.MM. H:mm')+'</td>');
-        row.append('<td>'+dur+'h'+'</td>');
+        row.append('<td>'+result[i].date.format('ddd DD.MM.YYYY')+'</td>');
+        if (result[i].empty()) {
+            row.append('<td></td><td></td>');
+        } else {
+            row.append('<td>'+result[i].start+':00 - '+result[i].stop+':00</td>');
+            row.append('<td>'+result[i].duration()+'h'+'</td>');
+        }
         table.append(row);
     }
     return table;
